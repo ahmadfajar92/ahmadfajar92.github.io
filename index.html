@@ -1,9 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ahmad Fajar · Senior Software Engineer</title>
+<title>Ahmad Fajar — Senior Software Engineer | Go, Distributed Systems, VoIP</title>
+<meta name="description" content="Ahmad Fajar — Senior Software Engineer with 10+ years in Go, distributed systems, real-time communications, and microservices. Creator of UNICORN Framework. Based in Indonesia, open to remote.">
+<meta name="keywords" content="Ahmad Fajar, Senior Software Engineer, Golang, Go, backend engineer, distributed systems, VoIP, FreeSWITCH, Kafka, microservices, UNICORN framework, remote, Indonesia">
+<meta name="author" content="Ahmad Fajar">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://ahmadfajar92.github.io">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Ahmad Fajar — Senior Software Engineer">
+<meta property="og:description" content="10+ years in backend engineering. Go, distributed systems, real-time communications. Open to remote.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ahmadfajar92.github.io">
+<meta property="og:site_name" content="Ahmad Fajar">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ahmad Fajar — Senior Software Engineer">
+<meta name="twitter:description" content="10+ years in backend engineering. Go, distributed systems, real-time communications. Open to remote.">
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Ahmad Fajar",
+  "jobTitle": "Senior Software Engineer",
+  "url": "https://ahmadfajar92.github.io",
+  "email": "fajardd92@gmail.com",
+  "sameAs": [
+    "https://github.com/madcok-co",
+    "https://linkedin.com/in/ahmadfajar"
+  ],
+  "knowsAbout": ["Go", "Golang", "Distributed Systems", "Microservices", "Kafka", "FreeSWITCH", "VoIP", "Real-Time Communications", "Backend Engineering"],
+  "description": "Senior Software Engineer with 10+ years experience in Go, distributed systems, and real-time communications. Creator of UNICORN Framework."
+}
+</script>
+
+<!-- Favicon (emoji-based) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦄</text></svg>">
 <style>
   :root {
     --bg: #0a0a0f;
@@ -173,6 +211,8 @@
   .line.user { color: #f1c40f; font-weight: bold; }
   .line.answer { color: #c8d6e5; white-space: pre-wrap; word-break: break-word; }
   .line.glow { text-shadow: 0 0 8px rgba(0,229,160,0.5); }
+  .line.answer a { color: var(--accent); text-decoration: underline; }
+  .line.answer a:hover { color: #fff; }
   .line.blank { height: 6px; }
 
   /* ======== GAME ======== */
@@ -834,6 +874,21 @@ function appendLine(text, cls) {
   terminal.scrollTop = terminal.scrollHeight;
 }
 
+function linkify(text) {
+  // Auto-link URLs, emails, and domain patterns
+  return text.replace(
+    /(https?:\/\/[^\s<]+|[\w.-]+@[\w.-]+\.\w+|(?:[\w-]+\.)+[\w-]+(?:\/[^\s<]*[\w])?)/g,
+    function(m) {
+      if (m.includes('@')) {
+        return '<a href="mailto:' + m + '" target="_blank">' + m + '</a>';
+      }
+      const hasProtocol = m.startsWith('http');
+      const href = hasProtocol ? m : 'https://' + m;
+      return '<a href="' + href + '" target="_blank">' + m + '</a>';
+    }
+  );
+}
+
 function typeAnswer(text, done) {
   const div = document.createElement('div');
   div.className = 'line answer';
@@ -847,7 +902,12 @@ function typeAnswer(text, done) {
     div.textContent += text[i];
     terminal.scrollTop = terminal.scrollHeight;
     i++;
-    if (i >= text.length) { clearInterval(interval); if (done) done(); }
+    if (i >= text.length) {
+      clearInterval(interval);
+      // Replace with linked version after typing done
+      div.innerHTML = linkify(text);
+      if (done) done();
+    }
   }, 20);
 }
 
