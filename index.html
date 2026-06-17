@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ahmad Fajar · Senior Software Engineer</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #0d1117;
+    --text: #c8d6e5;
+    --accent: #00e5a0;
+    --dim: #555;
+    --glow: 0 0 30px rgba(0,229,160,0.12);
+    --font-mono: 'Courier New', Courier, monospace;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: radial-gradient(ellipse at 50% 30%, #111122 0%, var(--bg) 70%);
+    color: var(--text);
+    font-family: var(--font-mono);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    user-select: none;
+    gap: 16px;
+  }
+
+  #bgCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* ======== DESK AREA ======== */
+  .desk-area {
+    position: relative;
+    width: 540px;
+    height: 430px;
+  }
+
+  /* MONITOR — big, sits back on desk */
+  .monitor {
+    position: absolute;
+    bottom: 130px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+  .monitor-screen {
+    width: 480px; height: 290px;
+    background: var(--surface);
+    border: 5px solid #1a1a2e;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow:
+      0 0 40px rgba(0,229,160,0.06),
+      inset 0 0 30px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  .monitor-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,229,160,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .monitor-stand {
+    width: 50px; height: 18px;
+    background: #1a1a2e;
+    margin: 0 auto;
+    border-radius: 0 0 4px 4px;
+  }
+  .monitor-base {
+    width: 110px; height: 12px;
+    background: #1a1a2e;
+    margin: 0 auto;
+    border-radius: 6px;
+  }
+  .monitor-brand {
+    position: absolute;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 20px; height: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    z-index: 3;
+    box-shadow: 0 0 8px var(--accent);
+    animation: ledPulse 2s ease-in-out infinite;
+  }
+  @keyframes ledPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* terminal inside monitor */
+  .terminal-bar {
+    background: #161b22;
+    padding: 5px 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-bottom: 1px solid #21262d;
+    font-size: 11px;
+    color: var(--dim);
+    flex-shrink: 0;
+    z-index: 6;
+    position: relative;
+  }
+  .terminal-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .terminal-dot.r { background: #e74c3c; }
+  .terminal-dot.y { background: #f1c40f; }
+  .terminal-dot.g { background: #2ecc71; }
+  .terminal-title {
+    margin-left: 6px;
+    font-size: 10px;
+    color: #8b949e;
+    flex: 1;
+  }
+  .clear-btn {
+    background: none;
+    border: 1px solid #30363d;
+    color: #555;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .clear-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .clear-btn + .clear-btn { margin-left: 4px; }
+
+  .terminal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.65;
+    scrollbar-width: thin;
+    scrollbar-color: #30363d transparent;
+    z-index: 6;
+    position: relative;
+  }
+  .terminal-body::-webkit-scrollbar { width: 5px; }
+  .terminal-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+  .line { margin-bottom: 2px; }
+  .line.prompt { color: var(--accent); }
+  .line.user { color: #f1c40f; font-weight: bold; }
+  .line.answer { color: #c8d6e5; white-space: pre-wrap; word-break: break-word; }
+  .line.glow { text-shadow: 0 0 8px rgba(0,229,160,0.5); }
+  .line.blank { height: 6px; }
+
+  /* ======== GAME ======== */
+  .game-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    background: var(--surface);
+  }
+  .game-overlay.active { display: block; }
+  .game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .game-hud {
+    position: absolute;
+    top: 6px; left: 10px; right: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--accent);
+    pointer-events: none;
+    z-index: 8;
+    font-family: var(--font-mono);
+  }
+  .game-hud .lives { color: #e74c3c; }
+  .game-hud .game-close-btn {
+    background: none;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    font-size: 11px;
+    width: 20px; height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    pointer-events: all;
+    transition: all 0.2s;
+  }
+  .game-hud .game-close-btn:hover { background: #e74c3c; color: #fff; }
+  .game-input {
+    position: absolute;
+    bottom: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: bold;
+    color: #f1c40f;
+    text-shadow: 0 0 10px rgba(241,196,15,0.5);
+    z-index: 8;
+    pointer-events: none;
+    font-family: var(--font-mono);
+    letter-spacing: 2px;
+    min-height: 22px;
+  }
+  .game-over-screen {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    background: rgba(0,0,0,0.85);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+  }
+  .game-over-screen.active { display: flex; }
+  .game-over-screen .title { font-size: 22px; color: #e74c3c; font-weight: bold; }
+  .game-over-screen .stat { font-size: 13px; color: #c8d6e5; }
+  .game-over-screen .stat b { color: var(--accent); }
+  .game-restart-btn {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 6px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 6px;
+    transition: all 0.2s;
+  }
+  .game-restart-btn:hover { background: var(--accent); color: #000; }
+
+  /* ======== KEYBOARD (sits on desk, in front of monitor) ======== */
+  .keyboard {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px 16px;
+    background: #1a1a2e;
+    border-radius: 10px 10px 5px 5px;
+    border: 2px solid #111;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  }
+  .kb-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+  .kb-key {
+    width: 30px; height: 24px;
+    background: #2d2d3d;
+    border-radius: 4px;
+    border: 1px solid #3a3a4a;
+    font-size: 9px;
+    color: #777;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.05s;
+    font-family: var(--font-mono);
+  }
+  .kb-key.wide { width: 46px; }
+  .kb-key.wider { width: 60px; }
+  .kb-key.space { width: 180px; }
+  .kb-key.pressed {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    transform: translateY(2px);
+  }
+
+  /* keyboard sits at bottom, monitor floats above */
+
+  /* ======== QUESTION BUTTONS ======== */
+  .question-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: center;
+    max-width: 700px;
+    padding: 0 16px;
+    z-index: 100;
+    position: relative;
+  }
+  .q-btn {
+    background: var(--surface);
+    border: 1px solid #21262d;
+    color: #8b949e;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .q-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--glow);
+  }
+  .q-btn:active {
+    transform: scale(0.95);
+    background: #161b22;
+  }
+
+  /* ======== FOOTER ======== */
+  .footer {
+    font-size: 10px;
+    color: var(--dim);
+    text-align: center;
+    z-index: 100;
+    position: relative;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  /* ======== RESPONSIVE ======== */
+  @media (max-width: 700px) {
+    .desk-area { width: 350px; height: 300px; }
+    .monitor { bottom: 100px; }
+    .monitor-screen { width: 310px; height: 200px; }
+    .terminal-body { font-size: 10px; padding: 6px 8px; }
+    .keyboard { padding: 6px 8px; gap: 3px; }
+    .kb-key { width: 18px; height: 16px; font-size: 6px; border-radius: 2px; }
+    .kb-key.wide { width: 30px; }
+    .kb-key.wider { width: 38px; }
+    .kb-key.space { width: 110px; }
+    .q-btn { font-size: 9px; padding: 4px 10px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+
+<div class="desk-area">
+  <!-- Monitor -->
+  <div class="monitor">
+    <div class="monitor-screen">
+      <div class="terminal-bar">
+        <span class="terminal-dot r"></span>
+        <span class="terminal-dot y"></span>
+        <span class="terminal-dot g"></span>
+        <span class="terminal-title">fajar@profile ~/cv</span>
+        <button class="clear-btn" onclick="clearTerminal()" title="Clear screen (Ctrl+L)">clear</button>
+        <button class="clear-btn" id="langToggle" onclick="toggleLang()" title="Toggle language">EN</button>
+      </div>
+      <div class="terminal-body" id="terminal">
+        <div class="line prompt">$ cat welcome.txt</div>
+        <div class="line answer">╔══════════════════════════════════════╗</div>
+        <div class="line answer">║  👋 Welcome to Ahmad Fajar's CV    ║</div>
+        <div class="line answer">║  Pilih pertanyaan di bawah ya!     ║</div>
+        <div class="line answer">╚══════════════════════════════════════╝</div>
+        <div class="line blank"></div>
+      </div>
+
+      <!-- Game overlay -->
+      <div class="game-overlay" id="gameOverlay">
+        <canvas class="game-canvas" id="gameCanvas"></canvas>
+        <div class="game-hud">
+          <span>🎯 <span id="gameScore">0</span></span>
+          <span>⚡ <span id="gameWPM">0</span> wpm</span>
+          <span class="lives">❤️ <span id="gameLives">5</span></span>
+          <button class="game-close-btn" onclick="stopGame()" title="Exit game (Esc)">✕</button>
+        </div>
+        <div class="game-input" id="gameInput"></div>
+        <div class="game-over-screen" id="gameOverScreen">
+          <div class="title">GAME OVER</div>
+          <div class="stat">Score: <b id="goScore">0</b></div>
+          <div class="stat">WPM: <b id="goWPM">0</b></div>
+          <div class="stat">Accuracy: <b id="goAcc">0%</b></div>
+          <button class="game-restart-btn" onclick="startGame()">↻ Play Again</button>
+        </div>
+      </div>
+    </div>
+    <div class="monitor-stand"></div>
+    <div class="monitor-base"></div>
+    <div class="monitor-brand"></div>
+  </div>
+
+  <!-- Keyboard (sits on desk, below monitor) -->
+  <div class="keyboard" id="keyboard">
+    <div class="kb-row">
+      <span class="kb-key">Esc</span><span class="kb-key">1</span><span class="kb-key">2</span><span class="kb-key">3</span><span class="kb-key">4</span><span class="kb-key">5</span><span class="kb-key">6</span><span class="kb-key">7</span><span class="kb-key">8</span><span class="kb-key">9</span><span class="kb-key">0</span><span class="kb-key">-</span><span class="kb-key">=</span><span class="kb-key wide">Bksp</span>
+    </div>
+    <div class="kb-row">
+      <span class="kb-key wider">Tab</span><span class="kb-key">Q</span><span class="kb-key">W</span><span class="kb-key">E</span><span class="kb-key">R</span><span class="kb-key">T</span><span class="kb-key">Y</span><span class="kb-key">U</span><span class="kb-key">I</span><span class="kb-key">O</span><span class="kb-key">P</span><span class="kb-key">[</span><span class="kb-key">]</span><span class="kb-key">\</span>
+    </div>
+    <div class="kb-row">
+      <span class="kb-key wider">Caps</span><span class="kb-key">A</span><span class="kb-key">S</span><span class="kb-key">D</span><span class="kb-key">F</span><span class="kb-key">G</span><span class="kb-key">H</span><span class="kb-key">J</span><span class="kb-key">K</span><span class="kb-key">L</span><span class="kb-key">;</span><span class="kb-key">'</span><span class="kb-key wider">Enter</span>
+    </div>
+    <div class="kb-row">
+      <span class="kb-key wider">Shift</span><span class="kb-key">Z</span><span class="kb-key">X</span><span class="kb-key">C</span><span class="kb-key">V</span><span class="kb-key">B</span><span class="kb-key">N</span><span class="kb-key">M</span><span class="kb-key">,</span><span class="kb-key">.</span><span class="kb-key">/</span><span class="kb-key wider">Shift</span>
+    </div>
+    <div class="kb-row">
+      <span class="kb-key">Ctrl</span><span class="kb-key">Win</span><span class="kb-key">Alt</span><span class="kb-key space"></span><span class="kb-key">Alt</span><span class="kb-key">Fn</span><span class="kb-key">Ctrl</span>
+    </div>
+  </div>
+
+  <!-- Desk -->
+</div>
+
+<!-- Questions -->
+<div class="question-panel" id="questionPanel"></div>
+
+<!-- Footer -->
+<div class="footer">
+  Ahmad Fajar · <a href="mailto:fajardd92@gmail.com">fajardd92@gmail.com</a> ·
+  <a href="https://github.com/madcok-co" target="_blank">github/madcok-co</a>
+</div>
+
+<script>
+// ── Background Particles ──
+(function() {
+  const c = document.getElementById('bgCanvas');
+  const ctx = c.getContext('2d');
+  let particles = [];
+  const COUNT = 60;
+
+  function resize() {
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < COUNT; i++) {
+    particles.push({
+      x: Math.random() * c.width,
+      y: Math.random() * c.height,
+      r: Math.random() * 1.5 + 0.4,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+      alpha: Math.random() * 0.3 + 0.05,
+      pulse: Math.random() * Math.PI * 2
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, c.width, c.height);
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = c.width;
+      if (p.x > c.width) p.x = 0;
+      if (p.y < 0) p.y = c.height;
+      if (p.y > c.height) p.y = 0;
+
+      p.pulse += 0.008;
+      const a = p.alpha + Math.sin(p.pulse) * 0.08;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,229,160,' + Math.max(0, a) + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+const responsesID = {
+  "Siapa kamu?": [
+    "Halo! Gue Ahmad Fajar,\nSenior Software Engineer.",
+    "10+ tahun di backend engineering.\nSpesialis: Go, distributed systems,\n& real-time communications.",
+    "Berbasis di Majalengka, Jawa Barat.\nOpen to remote opportunities! 🚀"
+  ],
+  "Tech stack utama?": [
+    "Go (Golang) — bahasa andalan\nbuat high-performance backend.",
+    "Messaging: Apache Kafka, RabbitMQ, AWS SQS\nDB: MySQL, PostgreSQL, Redis\nInfra: Docker, AWS, CI/CD, gRPC, REST, WS",
+    "Juga nyaman: Python, PHP, JS/TS."
+  ],
+  "Pengalaman terbaru?": [
+    "Sekarang: Toku (Jul 2024–sekarang)\n— Multi-tenant Telco SaaS\n  (Go, Kafka, FreeSWITCH)",
+    "Sebelumnya:\n• Kitabisa (2021–2023)\n• Bhinneka (2018–2021)\n• Gevo Games (2016–2017)\n• Comlab Indonesia (2016)"
+  ],
+  "UNICORN Framework?": [
+    "Open-source Go backend framework\nyang gue bangun sejak 2023.",
+    "Fitur unggulan:\n▸ Multi-trigger handler (HTTP, Kafka,\n  RabbitMQ, gRPC, Cron, CLI)\n▸ Zero-alloc context pooling (~38ns/op)\n▸ OAuth2/OIDC, RBAC, multi-tenancy\n▸ Circuit breaker, retry, OpenAPI gen\n▸ 100% test passing rate",
+    "🦄 github.com/madcok-co/unicorn"
+  ],
+  "Distributed systems?": [
+    "Core expertise gue.",
+    "Pengalaman:\n▸ Event-driven architecture (Kafka)\n▸ Microservices dari scratch\n▸ Zero-downtime migration\n▸ Multi-tenant SaaS systems",
+    "Gue enjoy ngedesain sistem scalable\ndan resilient dari 0."
+  ],
+  "Telephony / VoIP?": [
+    "Di Toku: FreeSWITCH (SIP) untuk\nreal-time voice platform.",
+    "Handle: IVR, call recording,\nagent management services.",
+    "WebSocket & real-time comms\nadalah spesialisasi utama gue."
+  ],
+  "Pendidikan?": [
+    "S1 Computer Science\nUniversitas Komputer Indonesia\n(UNIKOM) — angkatan 2016.",
+    "Sejak kuliah udah aktif freelance\ndan magang di tech companies."
+  ],
+  "Lokasi & status?": [
+    "📍 Majalengka, Jawa Barat, Indonesia",
+    "🌐 Open to Remote Opportunities\n— nyaman dgn async communication\n& self-driven workflow.",
+    "Remote-ready, solid experience."
+  ],
+  "Kelebihan utama?": [
+    "🟢 Real-time communication systems\n🟢 Distributed & high-throughput arch\n🟢 Scalable backend (0 → production)\n🟢 Framework builder mindset\n🟢 Developer productivity focus\n🟢 Remote-ready, strong async",
+    "Gak cuma nulis kode — juga mikirin\narsitektur, standar, & produktivitas\ntim secara holistik.\n\nGue tipe engineer yg udah lewat fase\n\"cargo-cult best practices\" — gue\nngerti KENAPA sesuatu dibangun,\nbukan cuma GIMANA."
+  ],
+  "Filosofi engineering?": [
+    "Gue pragmatic, bukan purist.\n\n\"Real engineers ship products,\nnot architecture diagrams.\"",
+    "UNICORN gue bangun dari FRUSTRASI —\nbertahun-tahun nulis boilerplate\nyang sama di proyek berbeda.\n\nGue ubah rasa kesel itu jadi\nsesuatu yang produktif.",
+    "Gue anti cargo-cult:\n▸ DDD buat CRUD 500 baris? Skip.\n▸ Microservices karena conference\n  talk? Premature distribution.\n▸ Repository pattern cuma buat\n  bingo card? Gak perlu.",
+    "Gue percaya: pattern itu tools,\nbukan agama. Pake ketika emang\ndibutuhkan, jangan karena FOMO.\n\n\"Write business logic,\nnot infrastructure code.\"",
+    "Gue direct & unfiltered. Gak suka\nbasa-basi. Beberapa orang bakal\ngak suka, tapi yg respek — mereka\nyg ngerti value sebenernya. 🔥"
+  ],
+  "Project impactful?": [
+    "1. Middleware Bhinneka — bridge\n   legacy ERP → microservices (Kafka),\n   zero-downtime migration.",
+    "2. UNICORN Framework — Go backend\n   framework open-source.",
+    "3. Multi-tenant Telco SaaS Toku —\n   real-time voice platform enterprise.",
+    "4. Search infra migration Kitabisa —\n   query perf & relevance boost."
+  ],
+  "Kontak / hubungi?": [
+    "📧 fajardd92@gmail.com",
+    "🌐 github.com/madcok-co\n   (cek UNICORN & project lain!)",
+    "💼 linkedin.com/in/ahmadfajar",
+    "Reach out kapan aja — diskusi tech,\ncollab, atau opportunity! 🔥"
+  ]
+};
+
+const responsesEN = {
+  "Who are you?": [
+    "Hey! I'm Ahmad Fajar,\nSenior Software Engineer.",
+    "10+ years in backend engineering.\nSpecialized in Go, distributed systems,\n& real-time communications.",
+    "Based in Majalengka, West Java.\nOpen to remote opportunities! 🚀"
+  ],
+  "Main tech stack?": [
+    "Go (Golang) — my primary language\nfor high-performance backends.",
+    "Messaging: Apache Kafka, RabbitMQ, AWS SQS\nDB: MySQL, PostgreSQL, Redis\nInfra: Docker, AWS, CI/CD, gRPC, REST, WS",
+    "Also comfortable with: Python, PHP, JS/TS."
+  ],
+  "Latest experience?": [
+    "Currently: Toku (Jul 2024–present)\n— Multi-tenant Telco SaaS\n  (Go, Kafka, FreeSWITCH)",
+    "Previously:\n• Kitabisa (2021–2023)\n• Bhinneka (2018–2021)\n• Gevo Games (2016–2017)\n• Comlab Indonesia (2016)"
+  ],
+  "UNICORN Framework?": [
+    "Open-source Go backend framework\nI've been building since 2023.",
+    "Key features:\n▸ Multi-trigger handler (HTTP, Kafka,\n  RabbitMQ, gRPC, Cron, CLI)\n▸ Zero-alloc context pooling (~38ns/op)\n▸ OAuth2/OIDC, RBAC, multi-tenancy\n▸ Circuit breaker, retry, OpenAPI gen\n▸ 100% test passing rate",
+    "🦄 github.com/madcok-co/unicorn"
+  ],
+  "Distributed systems?": [
+    "My core expertise.",
+    "Experience:\n▸ Event-driven architecture (Kafka)\n▸ Microservices from scratch\n▸ Zero-downtime migrations\n▸ Multi-tenant SaaS systems",
+    "I genuinely enjoy designing scalable,\nresilient systems from the ground up."
+  ],
+  "Telephony / VoIP?": [
+    "At Toku: FreeSWITCH (SIP) for\nreal-time voice platform.",
+    "Handling: IVR, call recording,\nagent management services.",
+    "WebSocket & real-time comms\nis one of my core specializations."
+  ],
+  "Education?": [
+    "B.Sc. in Computer Science\nUniversitas Komputer Indonesia\n(UNIKOM) — class of 2016.",
+    "Active in freelance & internships\nthroughout college."
+  ],
+  "Location & status?": [
+    "📍 Majalengka, West Java, Indonesia",
+    "🌐 Open to Remote Opportunities\n— very comfortable with async\ncommunication & self-driven workflow.",
+    "Remote-ready with solid experience."
+  ],
+  "Key strengths?": [
+    "🟢 Real-time communication systems\n🟢 Distributed & high-throughput arch\n🟢 Scalable backend (0 → production)\n🟢 Framework builder mindset\n🟢 Developer productivity focus\n🟢 Remote-ready, strong async",
+    "I don't just write code — I think about\narchitecture, standards, and team\nproductivity holistically.\n\nI'm past the \"cargo-cult best practices\"\nphase — I understand WHY we build\nsomething, not just HOW."
+  ],
+  "Engineering philosophy?": [
+    "I'm pragmatic, not a purist.\n\n\"Real engineers ship products,\nnot architecture diagrams.\"",
+    "UNICORN was born from FRUSTRATION —\nyears of writing the same boilerplate\nacross different projects.\n\nI turned that frustration into\nsomething productive.",
+    "I'm anti cargo-cult:\n▸ DDD for a 500-line CRUD? Skip.\n▸ Microservices because of a\n  conference talk? Premature.\n▸ Repository pattern bingo? No thanks.",
+    "I believe: patterns are tools,\nnot religion. Use them when you\nactually need them, not out of FOMO.\n\n\"Write business logic,\nnot infrastructure code.\"",
+    "I'm direct & unfiltered. I don't do\ncorporate fluff. Some will hate it,\nbut those who respect it — they get\nthe real value. 🔥"
+  ],
+  "Most impactful projects?": [
+    "1. Middleware at Bhinneka — bridge\n   legacy ERP → microservices (Kafka),\n   zero-downtime migration.",
+    "2. UNICORN Framework — open-source\n   Go backend framework.",
+    "3. Multi-tenant Telco SaaS at Toku —\n   enterprise real-time voice platform.",
+    "4. Search infra migration at Kitabisa —\n   query perf & relevance boost."
+  ],
+  "Contact?": [
+    "📧 fajardd92@gmail.com",
+    "🌐 github.com/madcok-co\n   (check out UNICORN & other projects!)",
+    "💼 linkedin.com/in/ahmadfajar",
+    "Reach out anytime — tech discussions,\ncollab, or opportunities! 🔥"
+  ]
+};
+
+function getResponses() { return lang === 'id' ? responsesID : responsesEN; }
+
+var lang = 'id';
+
+// Keyboard layout
+const keyRows = [
+  Array.from(document.querySelectorAll('.kb-row:nth-child(1) .kb-key')),
+  Array.from(document.querySelectorAll('.kb-row:nth-child(2) .kb-key')),
+  Array.from(document.querySelectorAll('.kb-row:nth-child(3) .kb-key')),
+  Array.from(document.querySelectorAll('.kb-row:nth-child(4) .kb-key')),
+  Array.from(document.querySelectorAll('.kb-row:nth-child(5) .kb-key'))
+];
+
+const charToKey = {};
+'1234567890'.split('').forEach((c, i) => { charToKey[c] = [0, i + 1]; });
+'QWERTYUIOP'.split('').forEach((c, i) => { charToKey[c] = [1, i + 1]; charToKey[c.toLowerCase()] = [1, i + 1]; });
+'ASDFGHJKL'.split('').forEach((c, i) => { charToKey[c] = [2, i + 1]; charToKey[c.toLowerCase()] = [2, i + 1]; });
+'ZXCVBNM'.split('').forEach((c, i) => { charToKey[c] = [3, i + 1]; charToKey[c.toLowerCase()] = [3, i + 1]; });
+charToKey[' '] = [4, 3];
+charToKey['.'] = [3, 8]; charToKey[','] = [3, 7];
+charToKey['/'] = [3, 9]; charToKey[';'] = [2, 9]; charToKey["'"] = [2, 10];
+charToKey['['] = [1, 10]; charToKey[']'] = [1, 11]; charToKey['\\'] = [1, 12];
+charToKey['-'] = [0, 10]; charToKey['='] = [0, 11];
+charToKey['\n'] = [2, 12];
+charToKey['('] = [0, 8]; charToKey[')'] = [0, 9]; charToKey[':'] = [2, 9];
+charToKey['@'] = [0, 1]; charToKey['#'] = [0, 2];
+charToKey['~'] = [1, 0]; charToKey['|'] = [1, 12];
+charToKey['!'] = [0, 0]; charToKey['+'] = [0, 10]; charToKey['*'] = [0, 7];
+charToKey['&'] = [0, 6]; charToKey['%'] = [0, 4];
+charToKey['$'] = [0, 3]; charToKey['^'] = [0, 5]; charToKey['_'] = [0, 10];
+charToKey['•'] = [0, 7]; charToKey['▸'] = [0, 7];
+charToKey['🟢'] = [0, 7]; charToKey['📍'] = [0, 7]; charToKey['🌐'] = [0, 7];
+charToKey['📧'] = [0, 7]; charToKey['📱'] = [0, 7]; charToKey['💼'] = [0, 7];
+charToKey['🚀'] = [0, 7]; charToKey['🔥'] = [0, 7]; charToKey['🦄'] = [0, 7];
+charToKey['👋'] = [0, 7];
+
+// Typing sound — Web Audio API
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playKeySound(char, pos) {
+  if (!audioCtx) return;
+  const now = audioCtx.currentTime;
+  const [row, col] = pos || [2, 4];
+
+  // Pitch mapped to keyboard row (higher row = higher pitch)
+  // Row 0 (numbers): ~2400Hz, Row 3 (bottom letters): ~800Hz
+  const baseFreq = 2600 - row * 450 + (col % 5) * 30;
+  const freq = baseFreq + (Math.random() - 0.5) * 60;
+
+  // Volume & timbre variations
+  const isSpace = char === ' ';
+  const isEnter = char === '\n';
+  const isSpecial = !/[a-zA-Z0-9 ]/.test(char) && !isEnter;
+
+  const clickVol = isSpace ? 0.10 : isEnter ? 0.12 : 0.05;
+  const pingVol = isEnter ? 0.06 : isSpace ? 0.02 : 0.04;
+  const noiseLen = isEnter ? 0.05 : isSpace ? 0.04 : 0.025;
+  const decay = isEnter ? 0.008 : isSpace ? 0.006 : 0.004;
+
+  // Noise burst (mechanical thock)
+  const bufferSize = Math.floor(audioCtx.sampleRate * noiseLen);
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * decay));
+  }
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(clickVol, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseLen);
+
+  // Tonal click — pitch varies per key
+  const osc = audioCtx.createOscillator();
+  osc.type = isSpecial ? 'triangle' : 'sine';
+  osc.frequency.setValueAtTime(freq, now);
+  const endFreq = isEnter ? 200 : isSpace ? 400 : freq * 0.45;
+  osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.025);
+
+  const oscGain = audioCtx.createGain();
+  oscGain.gain.setValueAtTime(pingVol, now);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
+
+  noise.connect(noiseGain).connect(audioCtx.destination);
+  osc.connect(oscGain).connect(audioCtx.destination);
+
+  noise.start(now); noise.stop(now + noiseLen);
+  osc.start(now); osc.stop(now + 0.025);
+}
+
+function pressKey(char, duration = 80) {
+  const pos = charToKey[char];
+  if (!pos) { playKeySound(char, [2, 4]); return; }
+  const [row, col] = pos;
+  if (row >= keyRows.length || col >= keyRows[row].length) return;
+  const key = keyRows[row][col];
+  if (!key) { playKeySound(char, [2, 4]); return; }
+  key.classList.add('pressed');
+  playKeySound(char, [row, col]);
+  setTimeout(() => key.classList.remove('pressed'), duration);
+}
+
+function animateTyping(text) {
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i >= text.length) {
+      clearInterval(interval);
+      const enterKey = keyRows[2][12];
+      if (enterKey) {
+        enterKey.classList.add('pressed');
+        setTimeout(() => enterKey.classList.remove('pressed'), 120);
+      }
+      return;
+    }
+    pressKey(text[i]);
+    i++;
+  }, 40);
+}
+
+// Terminal
+const terminal = document.getElementById('terminal');
+const questionPanel = document.getElementById('questionPanel');
+
+function buildQuestionButtons() {
+  // Remove old question buttons (not lang-btn or game-q-btn)
+  questionPanel.querySelectorAll('.q-btn:not(.lang-btn)').forEach(b => b.remove());
+
+  const qs = lang === 'id'
+    ? ["Siapa kamu?", "Tech stack utama?", "Pengalaman terbaru?", "UNICORN Framework?",
+       "Distributed systems?", "Telephony / VoIP?", "Pendidikan?", "Lokasi & status?",
+       "Kelebihan utama?", "Filosofi engineering?", "Project impactful?", "Kontak / hubungi?"]
+    : ["Who are you?", "Main tech stack?", "Latest experience?", "UNICORN Framework?",
+       "Distributed systems?", "Telephony / VoIP?", "Education?", "Location & status?",
+       "Key strengths?", "Engineering philosophy?", "Most impactful projects?", "Contact?"];
+
+  qs.forEach(q => {
+    const btn = document.createElement('button');
+    btn.className = 'q-btn';
+    btn.textContent = q;
+    btn.addEventListener('click', () => askQuestion(q));
+    questionPanel.appendChild(btn);
+  });
+
+  // Re-add game button at end
+  const gameBtn = document.createElement('button');
+  gameBtn.className = 'q-btn game-q-btn';
+  gameBtn.textContent = '🎮 Type Fury';
+  gameBtn.addEventListener('click', startGame);
+  questionPanel.appendChild(gameBtn);
+}
+
+function toggleLang() { switchLang(lang === 'id' ? 'en' : 'id'); }
+
+function switchLang(newLang) {
+  if (lang === newLang) return;
+  lang = newLang;
+  document.getElementById('langToggle').textContent = lang === 'id' ? 'EN' : 'ID';
+  buildQuestionButtons();
+  if (!gameActive) {
+    terminal.querySelectorAll('.line').forEach(l => l.remove());
+    appendLine(`$ LANG=${lang === 'id' ? 'id_ID.UTF-8' : 'en_US.UTF-8'}`, 'prompt');
+    appendLine(lang === 'id' ? 'Bahasa: Indonesia 🇮🇩' : 'Language: English 🇬🇧', 'answer');
+    appendLine('', 'blank');
+  }
+}
+
+buildQuestionButtons();
+
+let typingQueue = Promise.resolve();
+
+function askQuestion(question) {
+  if (gameActive) stopGame(); // exit game when browsing CV
+  initAudio(); // init audio on first user click
+  typingQueue = typingQueue.then(() => new Promise(resolve => {
+    appendLine(`$ ask "${question}"`, 'user');
+    appendLine('', 'blank');
+
+    const answers = getResponses()[question];
+    let delay = 400;
+
+    answers.forEach((answer, i) => {
+      setTimeout(() => {
+        typeAnswer(answer, () => {
+          if (i === answers.length - 1) {
+            setTimeout(() => { appendLine('', 'blank'); resolve(); }, 300);
+          }
+        });
+      }, delay);
+      delay += answer.length * 35 + 500;
+    });
+    setTimeout(() => resolve(), delay + 3000);
+  }));
+}
+
+function appendLine(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'line ' + cls;
+  if (cls === 'user') div.classList.add('glow');
+  div.textContent = text;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function typeAnswer(text, done) {
+  const div = document.createElement('div');
+  div.className = 'line answer';
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+
+  animateTyping(text);
+
+  let i = 0;
+  const interval = setInterval(() => {
+    div.textContent += text[i];
+    terminal.scrollTop = terminal.scrollHeight;
+    i++;
+    if (i >= text.length) { clearInterval(interval); if (done) done(); }
+  }, 20);
+}
+
+// ── Clear terminal ──
+function clearTerminal() {
+  if (gameActive) return;
+  terminal.querySelectorAll('.line').forEach(l => l.remove());
+  appendLine('$ clear', 'prompt');
+  appendLine('', 'blank');
+}
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'l') { e.preventDefault(); clearTerminal(); }
+});
+
+// ═══════════════════════════════════════════
+//  TYPE FURY — Mini Game
+// ═══════════════════════════════════════════
+const gameOverlay = document.getElementById('gameOverlay');
+const gameCanvas = document.getElementById('gameCanvas');
+const gameCtx = gameCanvas.getContext('2d');
+const gameInputEl = document.getElementById('gameInput');
+const gameOverScreen = document.getElementById('gameOverScreen');
+
+let gameActive = false;
+let gameRAF = null;
+let words = [];
+let currentInput = '';
+let score = 0, lives = 5, totalKeystrokes = 0, correctKeystrokes = 0;
+let gameStartTime = 0, spawnTimer = 0, wordSpeed = 0.6;
+
+const wordBank = [
+  'Go', 'Kafka', 'Docker', 'Redis', 'MySQL', 'gRPC', 'REST',
+  'AWS', 'K8s', 'API', 'SQL', 'SIP', 'VoIP', 'Unix',
+  'OAuth2', 'RBAC', 'micro', 'async', 'proxy', 'cache',
+  'queue', 'event', 'route', 'token', 'batch', 'stream',
+  'Python', 'Linux', 'Nginx', 'Rabbit', 'WebSocket',
+  'Golang', 'Django', 'FreeSWITCH', 'PostgreSQL',
+  'handler', 'backend', 'deploy', 'router', 'schema',
+  'circuit', 'breaker', 'retry', 'tenant',
+  'async', 'promise', 'thread', 'socket', 'buffer',
+  'index', 'query', 'commit', 'merge', 'build',
+  'server', 'client', 'broker', 'worker', 'config'
+];
+
+function initGameCanvas() {
+  const rect = gameCanvas.parentElement.getBoundingClientRect();
+  gameCanvas.width = rect.width * (window.devicePixelRatio || 1);
+  gameCanvas.height = rect.height * (window.devicePixelRatio || 1);
+  gameCtx.setTransform(1, 0, 0, 1, 0, 0);
+  gameCtx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+}
+
+function startGame() {
+  initAudio();
+  stopGame(); // stop any running instance
+  gameActive = true;
+  score = 0; lives = 5; wordSpeed = 0.6;
+  totalKeystrokes = 0; correctKeystrokes = 0;
+  currentInput = '';
+  words = [];
+  spawnTimer = 0;
+  gameStartTime = performance.now();
+
+  gameOverScreen.classList.remove('active');
+  gameOverlay.classList.add('active');
+  gameInputEl.textContent = '';
+  document.getElementById('gameScore').textContent = '0';
+  document.getElementById('gameWPM').textContent = '0';
+  document.getElementById('gameLives').textContent = '5';
+
+  initGameCanvas();
+  window.addEventListener('resize', initGameCanvas);
+  document.addEventListener('keydown', onGameKey);
+  gameLoop();
+}
+
+function stopGame() {
+  gameActive = false;
+  cancelAnimationFrame(gameRAF);
+  window.removeEventListener('resize', initGameCanvas);
+  document.removeEventListener('keydown', onGameKey);
+  gameOverlay.classList.remove('active');
+}
+
+function showGameOver() {
+  gameActive = false;
+  cancelAnimationFrame(gameRAF);
+  document.removeEventListener('keydown', onGameKey);
+
+  const elapsed = (performance.now() - gameStartTime) / 60000; // minutes
+  const wpm = elapsed > 0 ? Math.round((correctKeystrokes / 5) / elapsed) : 0;
+  const acc = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 0;
+
+  document.getElementById('goScore').textContent = score;
+  document.getElementById('goWPM').textContent = wpm;
+  document.getElementById('goAcc').textContent = acc + '%';
+  gameOverScreen.classList.add('active');
+
+  window.removeEventListener('resize', initGameCanvas);
+}
+
+function onGameKey(e) {
+  if (!gameActive) return;
+  if (e.key === 'Escape') { stopGame(); return; }
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+  e.preventDefault();
+  totalKeystrokes++;
+
+  if (e.key === 'Backspace') {
+    currentInput = currentInput.slice(0, -1);
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    // Check match
+    const inputLower = currentInput.trim().toLowerCase();
+    let matched = false;
+    for (let i = words.length - 1; i >= 0; i--) {
+      if (words[i].text.toLowerCase() === inputLower) {
+        // Destroy word with flash
+        words[i].destroyed = true;
+        words[i].flashTimer = 12;
+        score += Math.max(10, words[i].text.length * 15);
+        correctKeystrokes += currentInput.length;
+        matched = true;
+
+        // Fast key flash on keyboard
+        for (const ch of words[i].text) pressKey(ch, 40);
+        playKeySound('\n', [2, 12]);
+        break;
+      }
+    }
+    if (!matched) {
+      playKeySound('\n', [2, 12]);
+    }
+    currentInput = '';
+  } else if (e.key.length === 1) {
+    currentInput += e.key;
+    correctKeystrokes++;
+    pressKey(e.key, 60);
+  }
+
+  gameInputEl.textContent = currentInput;
+  document.getElementById('gameScore').textContent = score;
+  const elapsed = (performance.now() - gameStartTime) / 60000;
+  const wpm = elapsed > 0 ? Math.round((correctKeystrokes / 5) / elapsed) : 0;
+  document.getElementById('gameWPM').textContent = wpm;
+}
+
+function spawnWord() {
+  const text = wordBank[Math.floor(Math.random() * wordBank.length)];
+  const w = gameCanvas.width / (window.devicePixelRatio || 1);
+  const fontSize = 15 + Math.floor(Math.random() * 4);
+  gameCtx.font = `bold ${fontSize}px "Courier New", monospace`;
+  const tw = gameCtx.measureText(text).width;
+  words.push({
+    text, x: 20 + Math.random() * (w - tw - 40), y: -30,
+    speed: wordSpeed + Math.random() * 0.4,
+    destroyed: false, flashTimer: 0,
+    fontSize
+  });
+}
+
+function gameLoop(ts) {
+  if (!gameActive) return;
+  gameRAF = requestAnimationFrame(gameLoop);
+
+  const w = gameCanvas.width / (window.devicePixelRatio || 1);
+  const h = gameCanvas.height / (window.devicePixelRatio || 1);
+
+  // Clear
+  gameCtx.fillStyle = '#0d1117';
+  gameCtx.fillRect(0, 0, w, h);
+
+  // Grid lines
+  gameCtx.strokeStyle = 'rgba(0,229,160,0.03)';
+  gameCtx.lineWidth = 1;
+  for (let gy = 0; gy < h; gy += 40) {
+    gameCtx.beginPath(); gameCtx.moveTo(0, gy); gameCtx.lineTo(w, gy); gameCtx.stroke();
+  }
+
+  // Spawn
+  spawnTimer++;
+  const spawnRate = Math.max(28, 70 - score / 15);
+  if (spawnTimer >= spawnRate) { spawnTimer = 0; spawnWord(); }
+
+  // Increase difficulty
+  wordSpeed = 0.6 + score / 400;
+
+  // Draw & update words
+  words = words.filter(word => {
+    word.y += word.speed;
+
+    if (word.destroyed) {
+      word.flashTimer--;
+      if (word.flashTimer <= 0) return false;
+      gameCtx.fillStyle = word.flashTimer % 2 === 0 ? '#00e5a0' : '#fff';
+      gameCtx.font = `bold ${word.fontSize}px "Courier New", monospace`;
+      gameCtx.fillText(word.text, word.x, word.y);
+      return true;
+    }
+
+    // Missed — reached bottom
+    if (word.y > h + 10) {
+      lives--;
+      document.getElementById('gameLives').textContent = Math.max(0, lives);
+      if (lives <= 0) { showGameOver(); }
+      return false;
+    }
+
+    // Normal draw
+    const alpha = word.y < 40 ? word.y / 40 : 1;
+    gameCtx.fillStyle = `rgba(200,214,229,${alpha})`;
+    gameCtx.font = `bold ${word.fontSize}px "Courier New", monospace`;
+    gameCtx.fillText(word.text, word.x, word.y);
+    return true;
+  });
+}
+</script>
+</body>
+</html>
